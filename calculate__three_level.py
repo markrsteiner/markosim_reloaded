@@ -64,29 +64,29 @@ def calculate_3_level(simulation_instance):  # todo clean up and comment
         diode_module.set__current_igbt(diode_module_igbt_current)
         diode_module.set__current_fwd(diode_module_fwd_current)
 
-        outside_module.calculate__conduction_loss__igbt(system.duty_cycle__p)
+        outside_module.calculate__conduction_loss__igbt(system.get__duty_cycle__p())
         outside_module.calculate__switching_loss__igbt()
 
-        outside_module.calculate__conduction_loss__fwd(system.duty_cycle__p)
+        outside_module.calculate__conduction_loss__fwd(system.get__duty_cycle__p())
         outside_module.calculate__switching_loss__fwd()
 
         outside_module.calculate__power_and_temps()
 
-        inside_igbt_switching_duty = [1.0 - duty if voltage < 0.0 else 0.0 for duty, voltage in zip(system.duty_cycle__n, system.get__system_output_voltage())]
+        inside_igbt_switching_duty = [1.0 - duty if voltage < 0.0 else 0.0 for duty, voltage in zip(system.get__duty_cycle__n(), system.get__system_output_voltage())]
         inside_fwd_switching_duty = [0.0 for _ in system.get__system_output_current()]
-        inside_conduction_duty = [1.0 - duty for duty in system.duty_cycle__n]
+        inside_conduction_duty = [1.0 - duty for duty in system.get__duty_cycle__n()]
 
         inside_module.calculate__conduction_loss__igbt(inside_conduction_duty)
         inside_module.calculate__switching_loss__igbt(inside_igbt_switching_duty)
 
-        inside_module.calculate__conduction_loss__fwd(system.duty_cycle__p)
+        inside_module.calculate__conduction_loss__fwd(system.get__duty_cycle__p())
         inside_module.calculate__switching_loss__fwd(inside_fwd_switching_duty)
 
         inside_module.calculate__power_and_temps()
 
         diode_igbt_duty = [0.0 for _ in system.get__system_output_current()]
-        diode_fwd_switching_duty = [1 - duty for duty in system.duty_cycle__p]
-        diode_fwd_conduction_duty = [1 - duty_p if voltage > 0 else 1 - duty_n for duty_p, duty_n, voltage in zip(system.duty_cycle__p, system.duty_cycle__n, system.get__system_output_voltage())]
+        diode_fwd_switching_duty = [1 - duty for duty in system.get__duty_cycle__p()]
+        diode_fwd_conduction_duty = [1 - duty_p if voltage > 0 else 1 - duty_n for duty_p, duty_n, voltage in zip(system.get__duty_cycle__p(), system.get__duty_cycle__n(), system.get__system_output_voltage())]
 
         diode_module.calculate__conduction_loss__igbt(diode_igbt_duty)
         diode_module.calculate__switching_loss__igbt(diode_igbt_duty)
@@ -107,4 +107,4 @@ def calculate_3_level(simulation_instance):  # todo clean up and comment
             tj_hold__condition_met = True
 
     system.create__output_view(inside_module, outside_module, diode_module)
-    return system.system_output_view
+    return system.get__system_output_view()

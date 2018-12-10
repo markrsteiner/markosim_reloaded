@@ -13,6 +13,7 @@ class System:
         self.input_output_freq = float(user_input_file['fo [Hz]'])
         self.input_t_sink = float(user_input_file['Ts [\u00B0C]'])
         self.input_modulation_type = ""
+        self.input_freq_carrier = float(user_input_file['fc [kHz]'])
         self.input_rg_on = float(user_input_file['rg on [\u03A9]'])
         self.input_rg_off = float(user_input_file['rg off [\u03A9]'])
         self.input_rg_on_inside = 0
@@ -21,17 +22,15 @@ class System:
         self.input_rg_off_outside = 0
         self.is_three_level = False
         self.rg_output_flag = True
-        self.step_size = int(1) #todo fix later
+        self.input_power_factor = float(user_input_file['PF [cos(\u03D5)]'])
+        self.step_size = int(1)  # todo fix later
         self.time_division = 1 / self.input_output_freq / 360.0 * self.step_size
-        self.power_factor_phase_shift = math.acos(float(user_input_file['PF [cos(\u03D5)]'])) * 180 / math.pi
+        self.power_factor_phase_shift = math.acos(float(user_input_file['PF [cos(\u03D5)]']))
         self.switches_per_degree = float(user_input_file['fc [kHz]']) * self.time_division
         self.output_current = []
-        self.output_voltage = []
         self.system_output_view = {}
 
-        # may delete, checking
-        self.cycle_angle__radian = []
-        self.cycle_angle__degree = []
+        self.cycle_angle__degree = None
         self.system_output_voltage = []
         self.output_current_full = []
         self.duty_cycle__p = []
@@ -59,8 +58,20 @@ class System:
     def get__input_output_freq(self):
         return self.input_output_freq
 
+    def get__input_mod_depth(self):
+        return self.input_mod_depth
+
+    def get__input_freq_carrier(self):
+        return self.input_freq_carrier
+
+    def get__input_power_factor(self):
+        return self.input_power_factor
+
     def get__duty_cycle__p(self):
         return self.duty_cycle__p
+
+    def get__duty_cycle__n(self):
+        return self.duty_cycle__n
 
     def get__step_size(self):
         return self.step_size
@@ -80,16 +91,36 @@ class System:
     def get__system_output_view(self):
         return self.system_output_view
 
+    def set__rg_flag(self, flag):
+        self.rg_output_flag = flag
+
+    def get__input_rg_on(self):
+        return self.input_rg_on
+
+    def get__input_rg_off(self):
+        return self.input_rg_off
+
+    def get__input_rg_on_inside(self):
+        return self.input_rg_on_inside
+
+    def get__input_rg_off_inside(self):
+        return self.input_rg_off_inside
+
+    def get__input_rg_on_outside(self):
+        return self.input_rg_on_outside
+
+    def get__input_rg_off_outside(self):
+        return self.input_rg_off_outside
+
     def calculate__system_output(self):
-        self.cycle_angle__radian = [i * self.step_size + self.step_size / 2 for i in range(int(360 / self.step_size))]
-        self.cycle_angle__degree = [val * math.pi / 180 for val in self.cycle_angle__radian]
+        self.cycle_angle__degree = np.array([val * math.pi / 180 for val in range(int(360 / self.step_size))])
 
         if self.input_modulation_type == "Sinusoidal":
             self.calculate__system_outputs()
-            # if self.input_modulation_type == "SVPWM":  #add later maybe
-            #     self.set_next_current__SVPWM()
-            # if self.input_modulation_type == 'Two Phase I':
-            #     self.set_next_current__2phase_i()
+        if self.input_modulation_type == "SVPWM":  # add later maybe
+            self.set_next_current__SVPWM()
+        if self.input_modulation_type == 'Two Phase I':
+            self.set_next_current__2phaseI()
         if self.is_three_level:
             self.duty_cycle__p = [np.clip(voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
             self.duty_cycle__n = [np.clip(-voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
@@ -111,49 +142,55 @@ class System:
 
     def calculate__system_outputs(self):
         if self.is_three_level:
-            self.system_output_voltage = [self.input_bus_voltage * (self.input_mod_depth * math.sin(deg)) for deg in self.cycle_angle__degree]
+            self.system_output_voltage = self.input_bus_voltage * self.input_mod_depth * np.sin(self.cycle_angle__degree)
         else:
-            self.system_output_voltage = [self.input_bus_voltage * (1 + self.input_mod_depth * math.sin(deg)) / 2.0 for deg in self.cycle_angle__degree]
-        self.output_current_full = [self.input_ic_peak * math.sin(deg - self.power_factor_phase_shift * math.pi / 180) for deg in self.cycle_angle__degree]
+            self.system_output_voltage = self.input_bus_voltage * (1 + self.input_mod_depth * np.sin(self.cycle_angle__degree))
+        self.output_current_full = self.input_ic_peak * np.sin(self.cycle_angle__degree - self.power_factor_phase_shift)
 
-    def set_next_current__SVPWM(self):  # todo fix and/or maybe make into generator? Have to conisder
+    def set_next_current__SVPWM(self):
+        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
+        duty_cycle = np.array([self.SVPWM_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
+        self.system_output_voltage = self.input_bus_voltage * duty_cycle
+        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
+
+    def SVPWM_helper(self, sector, degree):
         modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
-        sector = self.rad_delta_math[-1] * 3 / math.pi
-        if sector <= 1:
-            duty_cycle = modified_input_mod_depth * math.cos(self.rad_delta_math - math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - math.pi / 6)) / 2.0
-        elif sector <= 2:
-            duty_cycle = modified_input_mod_depth * math.sin(2 * math.pi / 3 - self.rad_delta_math) + (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - math.pi / 2)) / 2.0
-        elif sector <= 3:
-            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - 5 * math.pi / 6)) / 2.0
-        elif sector <= 4:
-            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - 7 * math.pi / 6)) / 2.0
-        elif sector <= 5:
-            duty_cycle = modified_input_mod_depth * math.sin(self.rad_delta_math - 4 * math.pi / 3) + (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - 3 * math.pi / 2)) / 2.0
-        elif sector <= 6:
-            duty_cycle = modified_input_mod_depth * math.cos(self.rad_delta_math - 11 * math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(self.rad_delta_math - 11 * math.pi / 6)) / 2.0
+        if sector == 0:
+            duty_cycle = modified_input_mod_depth * math.cos(degree - math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 6)) / 2.0
+        elif sector == 1:
+            duty_cycle = modified_input_mod_depth * math.sin(2 * math.pi / 3 - degree) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 2)) / 2.0
+        elif sector == 2:
+            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 5 * math.pi / 6)) / 2.0
+        elif sector == 3:
+            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 7 * math.pi / 6)) / 2.0
+        elif sector == 4:
+            duty_cycle = modified_input_mod_depth * math.sin(degree - 4 * math.pi / 3) + (1.0 - modified_input_mod_depth * math.cos(degree - 3 * math.pi / 2)) / 2.0
+        elif sector == 5:
+            duty_cycle = modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6)) / 2.0
         else:
             return
+        return duty_cycle
 
-        self.output_voltage.append(self.input_bus_voltage * duty_cycle)
-        self.output_current.append(self.input_ic_peak * math.cos((self.rad_delta[-1] - self.power_factor_phase_shift) * math.pi / 180.0))  # todo change power factor phase shift to radians
+    def set_next_current__2phaseI(self):
+        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
+        duty_cycle = np.array([self.TwoPhaseI_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
+        self.system_output_voltage = self.input_bus_voltage * duty_cycle
+        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
 
-    def set_next_current__2phase_i(self):
+    def TwoPhaseI_helper(self, sector, degree):
         modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
-        sector = self.rad_delta_math[-1] * 3 / math.pi
-        if sector <= 1:
-            duty_cycle = modified_input_mod_depth * math.sin(self.rad_delta_math + math.pi / 6)
-        elif 1 < sector <= 2:
+        if sector == 0:
+            duty_cycle = modified_input_mod_depth * math.sin(degree + math.pi / 6)
+        elif sector == 1:
             duty_cycle = 1.0
-        elif 2 < sector <= 3:
-            duty_cycle = -modified_input_mod_depth * math.sin(self.rad_delta_math - 7 * math.pi / 6)
-        elif 3 < sector <= 4:
-            duty_cycle = 1.0 + modified_input_mod_depth * math.sin(self.rad_delta_math + math.pi / 6)
-        elif 4 < sector <= 5:
+        elif sector == 2:
+            duty_cycle = -modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
+        elif sector == 3:
+            duty_cycle = 1.0 + modified_input_mod_depth * math.sin(degree + math.pi / 6)
+        elif sector == 4:
             duty_cycle = 0.0
-        elif 5 < sector <= 6:
-            duty_cycle = 1.0 - modified_input_mod_depth * math.sin(self.rad_delta_math - 7 * math.pi / 6)
+        elif sector == 5:
+            duty_cycle = 1.0 - modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
         else:
-            return  # todo add an error here
-
-        self.output_voltage.append(self.input_bus_voltage * duty_cycle)
-        self.output_current.append(self.input_ic_peak * math.sin((self.rad_delta[-1] - self.power_factor_phase_shift) * math.pi / 180.0))
+            return
+        return duty_cycle

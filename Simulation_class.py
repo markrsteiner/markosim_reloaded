@@ -4,12 +4,10 @@ import time
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
-import profile
-import re
 
-import format__output
-import calculate__two_level
 import calculate__three_level
+import calculate__two_level
+import format__output
 
 
 class InputOperation:
@@ -60,6 +58,9 @@ class InputOperation:
 
     def get__module_max_temp(self):
         return self.module_max_temp
+
+    def get__input_rg_flag(self):
+        return self.rg_suppress_flag
 
     def load_user_inputs(self, user_inputs_filename):
         self.user_inputs = self.input_file_reader(user_inputs_filename)
@@ -114,7 +115,7 @@ class InputOperation:
         find_gen = self.gen_dict_extract(module_file, self.module_file_dict)
         module = next(find_gen)
 
-        # probably get rid of this soon
+        # todo probably get rid of this soon
         value_dict = {
             "Module Name": module_file,
             "IC - IC VCE": module['ic_vce']['ic__ic_vce'],
@@ -128,7 +129,7 @@ class InputOperation:
             "IC - IC ERR": module['ic_err']['ic__ic_err'],
             "ERR - IC ERR": module['ic_err']['err__ic_err'],
             "ESWON - ESWON RGON": module['rg_on_esw_on']['esw_on__rg_on_esw_on'],
-            "RGON - ESWON RGON": module['rg_on_esw_on']['rg_on__rg_on_esw_on'], #fix this, it's stupid
+            "RGON - ESWON RGON": module['rg_on_esw_on']['rg_on__rg_on_esw_on'],
             "ESWOFF - ESWOFF RGOFF": module['rg_off_esw_off']['esw_off__rg_off_esw_off'],
             "RGOFF - ESWOFF RGOFF": module['rg_off_esw_off']['rg_off__rg_off_esw_off'],
             "ERR - ERR RGON": module['rg_on_err']['err__rg_on_err'],
@@ -155,7 +156,7 @@ class InputOperation:
 
         return value_dict
 
-    def build__module_file_header():
+    def build__module_file_header(self):
         return ["Module Name",
                 "IC - IC VCE",
                 "VCE - IC VCE",
@@ -299,7 +300,7 @@ class InputOperation:
                 if self.three_level_flag:
                     single_simulation_results = calculate__three_level.calculate_3_level(self)
                 else:
-                    profile.runctx('single_simulation_results = calculate__two_level.simulation__two_level(self)',globals(),locals())
+                    single_simulation_results = calculate__two_level.simulation__two_level(self)
 
                 single_simulation_results_fixed_precision_values = [math.floor(y * 100) / 100 if type(y) is not str else y for y in single_simulation_results.values()]  # limits output values to 2 decimal places
                 self.simulation_values.append(single_simulation_results_fixed_precision_values)
@@ -316,7 +317,7 @@ class InputOperation:
             self.final_simulation_output = {**dict_where_keys_and_values_are_attached}
             self.final_simulation_output = single_simulation_results_fixed_precision_values
 
-    def set_output_file_location(self, input__output_file_location): #todo why?
+    def set_output_file_location(self, input__output_file_location):
         self.output_file_location = input__output_file_location
 
     def save__output_file(self):  # todo can this be cleaned?

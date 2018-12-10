@@ -512,8 +512,15 @@ class Ui_MainWindow(object):
 
         # set up input file buttons
         self.openSimulationFile.clicked.connect(self.open__simulation_file)
+
+        # click or double click to add modules to stack
         self.sendModuleFiletoStack.clicked.connect(self.send__selected_module_to_stack)
+        self.moduleSelectTreeWidget.doubleClicked.connect(self.send__selected_module_to_stack)
+
+        # click or double click to remove modules from stack
         self.pullModuleFilefromStack.clicked.connect(self.remove__selected_module_from_stack)
+        self.selectedModuleStackListWidget.doubleClicked.connect(self.remove__selected_module_from_stack)
+
         self.addCustomModuleFile.clicked.connect(self.add__custom_module_to_tree_widget)
         # self.removeCustomModuleFile.clicked.connect(self.remove_module_file_from_tree)
 
@@ -619,53 +626,6 @@ class Ui_MainWindow(object):
         user_input__simulation_input_file_location, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Open Input File", "", "Excel Files (*.xlsx)")
         self.userInput__SimulationInputFileLocation.setText(user_input__simulation_input_file_location)
         self.windowStatusBar.clearMessage()
-
-    #######################################################################
-    #
-    #   End of file handling stuff, all good.
-    #
-    #######################################################################
-
-    # in case I break this, can delete when TJ MAX working
-    # def click__run_simulation(self):
-    #     tab = self.mainTabWidget.currentIndex()
-    #     user_input__rg_suppress = self.RGSuppressCheckbox.isChecked()
-    #     user_input__advanced_file_output = self.advancedOutputCheckbox.isChecked()
-    #     simulation_instance = None
-    #     if self.check__problem_with_inputs():
-    #         return
-    #
-    #     user_input__output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
-    #     if user_input__output_file_location == "":
-    #         self.popup__error_box("No output file selected.")
-    #         return
-    #     self.simulationProgressBar.setValue(0)
-    #     if tab == 1:
-    #         simulation_instance = InputOperation_class.InputOperation(self.master_module_file_dict, user_input__rg_suppress, self.modulationTypeCombo_2Level.currentText(), nerd_output_flag=user_input__advanced_file_output)
-    #         module_list = self.get__list_from_target_widget(self.moduleFileListWidget_2Level)
-    #         simulation_instance.load__module_filename_list(module_list)
-    #
-    #     if tab == 2:
-    #         three_level_flag = True
-    #         simulation_instance = InputOperation_class.InputOperation(self.master_module_file_dict, user_input__rg_suppress, self.modulationTypeCombo_3Level.currentText(), three_level_flag, nerd_output_flag=user_input__advanced_file_output)
-    #         inside_module_list = self.get__list_from_target_widget(self.insideModuleListWidget_3Level)
-    #         outside_module_list = self.get__list_from_target_widget(self.outsideModuleListWidget_3Level)
-    #         diode_module_list = self.get__list_from_target_widget(self.diodeModuleListWidget_3Level)
-    #         simulation_instance.load__module_filename_list(inside_module_list, outside_module_list, diode_module_list)
-    #
-    #     if tab == 3:
-    #         self.popup__error_box("Chopper config not done yet, try later.")
-    #         return
-    #
-    #     if simulation_instance is not None:
-    #         simulation_instance.load_user_inputs(self.userInput__SimulationInputFileLocation.text())
-    #         simulation_instance.set_output_file_location(user_input__output_file_location)
-    #         simulation_instance.run__straight_simulation(self.simulationProgressBar)
-    #         simulation_instance.save__output_file()
-    #         print("Finished at: " + time.strftime("%H:%M:%S"))
-    #     else:
-    #         self.popup__error_box("Something went wrong")
-    #         return
 
     def click__run_simulation(self):
         simulation_instance = None
