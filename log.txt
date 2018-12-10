@@ -1,0 +1,10 @@
+2018-11-29 13:45:44,404 - Rotating Log - ERROR - 'QStatusBar' object has no attribute 'setValue'
+2018-11-29 13:45:44,404 - Rotating Log - ERROR - Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/Markosim Re-Build v1.0/check_me_again.py", line 957, in <module>
+    ui.setupUi(MainWindow)
+  File "C:/Users/mxs1113/PycharmProjects/Markosim Re-Build v1.0/check_me_again.py", line 439, in setupUi
+    self.setup__widgets_and_views()
+  File "C:/Users/mxs1113/PycharmProjects/Markosim Re-Build v1.0/check_me_again.py", line 508, in setup__widgets_and_views
+    self.simulationProgressBar.setValue(0)
+AttributeError: 'QStatusBar' object has no attribute 'setValue'
+
