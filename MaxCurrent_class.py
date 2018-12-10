@@ -29,3 +29,16 @@ class MaxCurrent:
     def is__searching_for_max_current(self):
         return self.searching_for_max_current
 
+    def get__max_current_module(self, module_one, module_two, module_three):
+        max_1 = module_one.get__nom_tj_max_igbt()
+        max_2 = module_two.get__nom_tj_max_igbt()
+        max_3 = module_three.get__nom_tj_max_igbt()
+        max_tot = max(max_1, max_2, max_3)
+        if max_1 == max_tot:
+            return module_one
+        if max_2 == max_tot:
+            return module_two
+        if max_3 == max_tot:
+            return module_three
+
+

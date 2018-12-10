@@ -36,6 +36,91 @@ class System:
         self.duty_cycle__p = []
         self.duty_cycle__n = []
 
+    def calculate__system_output(self):
+        self.cycle_angle__degree = np.array([val * math.pi / 180 for val in range(int(360 / self.step_size))])
+
+        if self.input_modulation_type == "Sinusoidal":
+            self.calculate__sinusoidal_output()
+        if self.input_modulation_type == "SVPWM":  # add later maybe
+            self.calculate__svpwm_output()
+        if self.input_modulation_type == 'Two Phase I':
+            self.calculate__two_phase1_output()
+        if self.is_three_level:
+            self.duty_cycle__p = [np.clip(voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
+            self.duty_cycle__n = [np.clip(-voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
+        else:
+            self.duty_cycle__p = [np.clip(voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
+            self.duty_cycle__n = [np.clip(-voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
+
+    def create__output_view(self, inside_module, outside_module=None, diode_module=None):
+        is_three_level = outside_module is not None and diode_module is not None
+        if is_three_level:
+            self.system_output_view = format__output.build__output_view_dict(self, inside_module, outside_module, diode_module)
+        else:
+            self.system_output_view = format__output.build__output_view_dict(self, inside_module)
+            self.system_output_view.update({'Modulation': self.input_modulation_type})
+            if self.rg_output_flag:
+                self.system_output_view.update({'rg on [\u03A9]': self.input_rg_on, 'rg off [\u03A9]': self.input_rg_off})
+            else:
+                self.system_output_view.update({'rg on [\u03A9]': "STOCK", 'rg off [\u03A9]': "STOCK"})
+
+    def calculate__sinusoidal_output(self):
+        if self.is_three_level:
+            self.system_output_voltage = self.input_bus_voltage * self.input_mod_depth * np.sin(self.cycle_angle__degree)
+        else:
+            self.system_output_voltage = self.input_bus_voltage * (1 + self.input_mod_depth * np.sin(self.cycle_angle__degree))
+        self.output_current_full = self.input_ic_peak * np.sin(self.cycle_angle__degree - self.power_factor_phase_shift)
+
+    def calculate__svpwm_output(self):
+        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
+        duty_cycle = np.array([self.svpwm_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
+        self.system_output_voltage = self.input_bus_voltage * duty_cycle
+        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
+
+    def svpwm_helper(self, sector, degree):
+        modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
+        if sector == 0:
+            duty_cycle = modified_input_mod_depth * math.cos(degree - math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 6)) / 2.0
+        elif sector == 1:
+            duty_cycle = modified_input_mod_depth * math.sin(2 * math.pi / 3 - degree) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 2)) / 2.0
+        elif sector == 2:
+            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 5 * math.pi / 6)) / 2.0
+        elif sector == 3:
+            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 7 * math.pi / 6)) / 2.0
+        elif sector == 4:
+            duty_cycle = modified_input_mod_depth * math.sin(degree - 4 * math.pi / 3) + (1.0 - modified_input_mod_depth * math.cos(degree - 3 * math.pi / 2)) / 2.0
+        elif sector == 5:
+            duty_cycle = modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6)) / 2.0
+        else:
+            return
+        return duty_cycle
+
+    def calculate__two_phase1_output(self):
+        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
+        duty_cycle = np.array([self.two_phase1_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
+        self.system_output_voltage = self.input_bus_voltage * duty_cycle
+        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
+
+    def two_phase1_helper(self, sector, degree):
+        modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
+        if sector == 0:
+            duty_cycle = modified_input_mod_depth * math.sin(degree + math.pi / 6)
+        elif sector == 1:
+            duty_cycle = 1.0
+        elif sector == 2:
+            duty_cycle = -modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
+        elif sector == 3:
+            duty_cycle = 1.0 + modified_input_mod_depth * math.sin(degree + math.pi / 6)
+        elif sector == 4:
+            duty_cycle = 0.0
+        elif sector == 5:
+            duty_cycle = 1.0 - modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
+        else:
+            return
+        return duty_cycle
+
+    # Getters and setters
+
     def set__three_level(self, is_three_level):
         self.is_three_level = is_three_level
         self.input_bus_voltage /= 2
@@ -45,6 +130,9 @@ class System:
 
     def set__input_current(self, input_current):
         self.input_ic_peak = input_current
+
+    def set__rg_flag(self, flag):
+        self.rg_output_flag = flag
 
     def get__input_current(self):
         return self.input_ic_peak
@@ -91,9 +179,6 @@ class System:
     def get__system_output_view(self):
         return self.system_output_view
 
-    def set__rg_flag(self, flag):
-        self.rg_output_flag = flag
-
     def get__input_rg_on(self):
         return self.input_rg_on
 
@@ -111,86 +196,3 @@ class System:
 
     def get__input_rg_off_outside(self):
         return self.input_rg_off_outside
-
-    def calculate__system_output(self):
-        self.cycle_angle__degree = np.array([val * math.pi / 180 for val in range(int(360 / self.step_size))])
-
-        if self.input_modulation_type == "Sinusoidal":
-            self.calculate__system_outputs()
-        if self.input_modulation_type == "SVPWM":  # add later maybe
-            self.set_next_current__SVPWM()
-        if self.input_modulation_type == 'Two Phase I':
-            self.set_next_current__2phaseI()
-        if self.is_three_level:
-            self.duty_cycle__p = [np.clip(voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
-            self.duty_cycle__n = [np.clip(-voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
-        else:
-            self.duty_cycle__p = [np.clip(voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
-            self.duty_cycle__n = [np.clip(-voltage / self.input_bus_voltage, 0, 1) for voltage in self.system_output_voltage]
-
-    def create__output_view(self, inside_module, outside_module=None, diode_module=None):
-        is_three_level = outside_module is not None and diode_module is not None
-        if is_three_level:
-            self.system_output_view = format__output.build__output_view_dict(self, inside_module, outside_module, diode_module)
-        else:
-            self.system_output_view = format__output.build__output_view_dict(self, inside_module)
-            self.system_output_view.update({'Modulation': self.input_modulation_type})
-            if self.rg_output_flag:
-                self.system_output_view.update({'rg on [\u03A9]': self.input_rg_on, 'rg off [\u03A9]': self.input_rg_off})
-            else:
-                self.system_output_view.update({'rg on [\u03A9]': "STOCK", 'rg off [\u03A9]': "STOCK"})
-
-    def calculate__system_outputs(self):
-        if self.is_three_level:
-            self.system_output_voltage = self.input_bus_voltage * self.input_mod_depth * np.sin(self.cycle_angle__degree)
-        else:
-            self.system_output_voltage = self.input_bus_voltage * (1 + self.input_mod_depth * np.sin(self.cycle_angle__degree))
-        self.output_current_full = self.input_ic_peak * np.sin(self.cycle_angle__degree - self.power_factor_phase_shift)
-
-    def set_next_current__SVPWM(self):
-        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
-        duty_cycle = np.array([self.SVPWM_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
-        self.system_output_voltage = self.input_bus_voltage * duty_cycle
-        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
-
-    def SVPWM_helper(self, sector, degree):
-        modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
-        if sector == 0:
-            duty_cycle = modified_input_mod_depth * math.cos(degree - math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 6)) / 2.0
-        elif sector == 1:
-            duty_cycle = modified_input_mod_depth * math.sin(2 * math.pi / 3 - degree) + (1.0 - modified_input_mod_depth * math.cos(degree - math.pi / 2)) / 2.0
-        elif sector == 2:
-            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 5 * math.pi / 6)) / 2.0
-        elif sector == 3:
-            duty_cycle = (1.0 - modified_input_mod_depth * math.cos(degree - 7 * math.pi / 6)) / 2.0
-        elif sector == 4:
-            duty_cycle = modified_input_mod_depth * math.sin(degree - 4 * math.pi / 3) + (1.0 - modified_input_mod_depth * math.cos(degree - 3 * math.pi / 2)) / 2.0
-        elif sector == 5:
-            duty_cycle = modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6) + (1.0 - modified_input_mod_depth * math.cos(degree - 11 * math.pi / 6)) / 2.0
-        else:
-            return
-        return duty_cycle
-
-    def set_next_current__2phaseI(self):
-        sector = np.floor(self.cycle_angle__degree * 3 / math.pi)
-        duty_cycle = np.array([self.TwoPhaseI_helper(_sector, _degree) for _sector, _degree in zip(sector, self.cycle_angle__degree)])
-        self.system_output_voltage = self.input_bus_voltage * duty_cycle
-        self.output_current = self.input_ic_peak * np.cos(self.cycle_angle__degree - self.power_factor_phase_shift)
-
-    def TwoPhaseI_helper(self, sector, degree):
-        modified_input_mod_depth = self.input_mod_depth * math.sqrt(3) / 2
-        if sector == 0:
-            duty_cycle = modified_input_mod_depth * math.sin(degree + math.pi / 6)
-        elif sector == 1:
-            duty_cycle = 1.0
-        elif sector == 2:
-            duty_cycle = -modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
-        elif sector == 3:
-            duty_cycle = 1.0 + modified_input_mod_depth * math.sin(degree + math.pi / 6)
-        elif sector == 4:
-            duty_cycle = 0.0
-        elif sector == 5:
-            duty_cycle = 1.0 - modified_input_mod_depth * math.sin(degree - 7 * math.pi / 6)
-        else:
-            return
-        return duty_cycle

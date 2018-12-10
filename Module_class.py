@@ -80,69 +80,6 @@ class Module:
 
         return module_interp_is_four_deg
 
-    def get__max_current(self):
-        return max(self.fwd['temps']['max_nom'], self.igbt['temps']['max_nom'])
-
-    def get__igbt_loss_total(self):
-        return self.igbt['loss_totals']['device']
-
-
-    def get__fwd_loss_total(self):
-        return self.fwd['loss_totals']['device']
-
-    def get__conduction_loss_igbt(self):
-        return self.igbt['loss_totals']['conduction']
-
-
-    def get__conduction_loss_fwd(self):
-        return self.fwd['loss_totals']['conduction']
-
-    def get__esw_loss_total(self):
-        return self.igbt['loss_totals']['esw']
-
-    def get__module_loss_total(self):
-        return self.module['loss_totals']['module']
-
-    def get__delta_tj_max_igbt(self):
-        return self.igbt['temps']['max_delta']
-
-
-    def get__nom_tj_max_igbt(self):
-        return self.igbt['temps']['max_nom']
-
-    def get__delta_tj_ave_igbt(self):
-        return self.igbt['temps']['ave_delta']
-
-    def get__nom_tj_ave_igbt(self):
-        return self.igbt['temps']['ave_nom']
-
-    def get__delta_tj_max_fwd(self):
-        return self.fwd['temps']['max_delta']
-
-    def get__nom_tj_max_fwd(self):
-        return self.fwd['temps']['max_nom']
-
-    def get__delta_tj_ave_fwd(self):
-        return self.fwd['temps']['ave_delta']
-
-    def get__nom_tj_ave_fwd(self):
-        return self.fwd['temps']['ave_nom']
-
-    def get__esw_on_loss_total(self):
-        return self.igbt['loss_totals']['esw_on']
-
-    def get__module_name(self):
-        return self.module['name']
-
-    def get__t_case_ave(self):
-        return self.module['temps']['t_case']
-
-
-    def get__esw_off_loss_total(self):
-        return self.igbt['loss_totals']['esw_off']
-
-    def get__err_loss_total(self):
-        return self.fwd['loss_totals']['err']
     def set__vcc_ratio_and_get_values(self, is_three_level, system):  # todo call this something different, and break it out for 3-level
         vcc_ratio = self.module['vcc_ratio']
         if vcc_ratio == 0:
@@ -167,39 +104,6 @@ class Module:
             'duty_p': system.get__duty_cycle__p()
         })
         del self.module['vcc_ratio']
-
-    def set__rg(self, input_instance, system_instance, module_location=None):
-        if not input_instance.get__input_rg_flag():
-            system_instance.set__rg_flag(True)
-            if module_location is None:
-                rg_on = system_instance.get__input_rg_on()
-                rg_off = system_instance.get__input_rg_off()
-            elif module_location is 'inside':
-                rg_on = system_instance.get__input_rg_on_inside()
-                rg_off = system_instance.get__input_rg_off_inside()
-            elif module_location is 'outside':
-                rg_on = system_instance.get__input_rg_on_outside()
-                rg_off = system_instance.get__input_rg_off_outside()
-                self.fwd['info']['err_rg_scalar'] = self.fwd['info']['rg_on_err'](system_instance.get__input_rg_on_outside())
-            else:
-                self.igbt['info']['esw_on_rg_scalar'] = self.sim_info['switching_scalar']
-                self.igbt['info']['esw_off_rg_scalar'] = self.sim_info['switching_scalar']
-                self.fwd['info']['err_rg_scalar'] = self.sim_info['switching_scalar']
-                return
-            self.igbt['info']['esw_on_rg_scalar'] = self.igbt['info']['rg_on_esw_on'](rg_on) * self.sim_info['switching_scalar']
-            self.igbt['info']['esw_off_rg_scalar'] = self.igbt['info']['rg_off_esw_off'](rg_off) * self.sim_info['switching_scalar']
-            self.fwd['info']['err_rg_scalar'] = self.fwd['info']['rg_on_err'](rg_on) * self.sim_info['switching_scalar']
-        else:
-            system_instance.set__rg_flag(False)
-            self.igbt['info']['esw_on_rg_scalar'] = self.sim_info['switching_scalar']
-            self.igbt['info']['esw_off_rg_scalar'] = self.sim_info['switching_scalar']
-            self.fwd['info']['err_rg_scalar'] = self.sim_info['switching_scalar']
-
-    def set__current_igbt(self, current):
-        self.igbt['current'] = current
-
-    def set__current_fwd(self, current):
-        self.fwd['current'] = current
 
     def calculate__conduction_loss__igbt(self, duty):
         self.igbt = self.calculate__conduction_loss(self.igbt, duty)
@@ -255,7 +159,7 @@ class Module:
     def calculate__max_temp(self):  # maybe split into igbt and fwd separately?
         self.calculate__rth_dict()
 
-        delta_p_igbt = np.subtract(np.roll(self.igbt['power_inst'], -1), self.igbt['power_inst'])[:359]
+        delta_p_igbt = np.subtract(np.roll(self.igbt['power_inst'], -1), self.igbt['power_inst'])[:self.sim_info['step_range']-1]
 
         last_power_igbt = self.igbt['power_inst'][-1] - self.igbt['loss_totals']['device']
         first_power_igbt = self.igbt['power_inst'][0] - self.igbt['loss_totals']['device']
@@ -264,56 +168,56 @@ class Module:
         rth_dict_igbt_added = np.add(self.calculate__rth_from_time(self.igbt, rth_time), self.igbt['info']['rth_dict'])
 
         tj_igbt_inst_init = rth_dict_igbt_added * first_power_igbt - last_power_igbt * self.igbt['info']['rth_dict'] + self.sim_info['input_t_sink'] + self.igbt['temps']['ave_delta'] + self.module['temps']['t_case']
-        tj_igbt_inst_init = tj_igbt_inst_init[:359]
+        tj_igbt_inst_init = tj_igbt_inst_init[:self.sim_info['step_range']-1]
 
-        delta_p_fwd = np.subtract(np.roll(self.fwd['power_inst'], -1), self.fwd['power_inst'])[:359]
+        delta_p_fwd = np.subtract(np.roll(self.fwd['power_inst'], -1), self.fwd['power_inst'])[:self.sim_info['step_range']-1]
         last_power_fwd = self.fwd['power_inst'][-1] - self.fwd['loss_totals']['device']
         first_power_fwd = self.fwd['power_inst'][0] - self.fwd['loss_totals']['device']
 
         rth_dict_fwd_added = np.add(self.calculate__rth_from_time(self.fwd, rth_time), self.fwd['info']['rth_dict'])
 
         tj_fwd_inst_init = self.sim_info['input_t_sink'] + self.fwd['temps']['ave_delta'] + self.module['temps']['t_case'] - last_power_fwd * self.fwd['info']['rth_dict'] + first_power_fwd * rth_dict_fwd_added
-        tj_fwd_inst_init = tj_fwd_inst_init[:359]
+        tj_fwd_inst_init = tj_fwd_inst_init[:self.sim_info['step_range']-1]
 
-        rth_dict_igbt__added_chunk = np.tile(rth_dict_igbt_added, (359, 1)).T
-        rth_dict_igbt__added_chunk[np.tril_indices(359, -1)] = 0
-        rth_dict_igbt__added_chunk[359] = 0.0
+        rth_dict_igbt__added_chunk = np.tile(rth_dict_igbt_added, (self.sim_info['step_range']-1, 1)).T
+        rth_dict_igbt__added_chunk[np.tril_indices(self.sim_info['step_range']-1, -1)] = 0
+        rth_dict_igbt__added_chunk[self.sim_info['step_range']-1] = 0.0
         rth_dict_igbt__added_chunk.sort(axis=0)
-        rth_dict_igbt__added_chunk = np.flipud(np.delete(rth_dict_igbt__added_chunk, 359, axis=0))
+        rth_dict_igbt__added_chunk = np.flipud(np.delete(rth_dict_igbt__added_chunk, self.sim_info['step_range']-1, axis=0))
 
-        rth_dict_igbt__old_chunk = np.tile(self.igbt['info']['rth_dict'], (359, 1)).T
-        rth_dict_igbt__old_chunk[np.triu_indices(359)] = 0
+        rth_dict_igbt__old_chunk = np.tile(self.igbt['info']['rth_dict'], (self.sim_info['step_range']-1, 1)).T
+        rth_dict_igbt__old_chunk[np.triu_indices(self.sim_info['step_range']-1)] = 0
         rth_dict_igbt__old_chunk.sort(axis=0)
         rth_dict_igbt__old_chunk = np.flipud(rth_dict_igbt__old_chunk)
 
         for i in range(self.sim_info['step_range'] - 1):
             rth_dict_igbt__old_chunk[:, i] = np.roll(rth_dict_igbt__old_chunk[:, i], i)
 
-        rth_dict_igbt__old_chunk = np.delete(rth_dict_igbt__old_chunk, 359, axis=0)
+        rth_dict_igbt__old_chunk = np.delete(rth_dict_igbt__old_chunk, self.sim_info['step_range']-1, axis=0)
         rth_dict_igbt_full = np.add(rth_dict_igbt__old_chunk, rth_dict_igbt__added_chunk)
 
-        rth_dict_fwd__added_chunk = np.tile(rth_dict_fwd_added, (359, 1)).T
-        rth_dict_fwd__added_chunk[np.tril_indices(359, -1)] = 0
-        rth_dict_fwd__added_chunk[359] = 0.0
+        rth_dict_fwd__added_chunk = np.tile(rth_dict_fwd_added, (self.sim_info['step_range']-1, 1)).T
+        rth_dict_fwd__added_chunk[np.tril_indices(self.sim_info['step_range']-1, -1)] = 0
+        rth_dict_fwd__added_chunk[self.sim_info['step_range']-1] = 0.0
         rth_dict_fwd__added_chunk.sort(axis=0)
-        rth_dict_fwd__added_chunk = np.flipud(np.delete(rth_dict_fwd__added_chunk, 359, axis=0))
+        rth_dict_fwd__added_chunk = np.flipud(np.delete(rth_dict_fwd__added_chunk, self.sim_info['step_range']-1, axis=0))
 
-        rth_dict_fwd__old_chunk = np.tile(self.fwd['info']['rth_dict'], (359, 1)).T
-        rth_dict_fwd__old_chunk[np.triu_indices(359)] = 0
+        rth_dict_fwd__old_chunk = np.tile(self.fwd['info']['rth_dict'], (self.sim_info['step_range']-1, 1)).T
+        rth_dict_fwd__old_chunk[np.triu_indices(self.sim_info['step_range']-1)] = 0
         rth_dict_fwd__old_chunk.sort(axis=0)
         rth_dict_fwd__old_chunk = np.flipud(rth_dict_fwd__old_chunk)
 
         for i in range(self.sim_info['step_range'] - 1):
             rth_dict_fwd__old_chunk[:, i] = np.roll(rth_dict_fwd__old_chunk[:, i], i)
 
-        rth_dict_fwd__old_chunk = np.delete(rth_dict_fwd__old_chunk, 359, axis=0)
+        rth_dict_fwd__old_chunk = np.delete(rth_dict_fwd__old_chunk, self.sim_info['step_range']-1, axis=0)
         rth_dict_fwd_full = np.add(rth_dict_fwd__old_chunk, rth_dict_fwd__added_chunk)
 
-        delta_p_tile__igbt = np.tile(delta_p_igbt, (359, 1)).T
+        delta_p_tile__igbt = np.tile(delta_p_igbt, (self.sim_info['step_range']-1, 1)).T
         temp_delta__igbt = rth_dict_igbt_full * delta_p_tile__igbt
         tj_list__igbt = np.sum(temp_delta__igbt, axis=0)
 
-        delta_p_tile__fwd = np.tile(delta_p_fwd, (359, 1)).T
+        delta_p_tile__fwd = np.tile(delta_p_fwd, (self.sim_info['step_range']-1, 1)).T
         temp_delta__fwd = rth_dict_fwd_full * delta_p_tile__fwd
         tj_list__fwd = np.sum(temp_delta__fwd, axis=0)
 
@@ -361,14 +265,14 @@ class Module:
 
     def calculate__rth_integration(self, part_dict, init__degree):
         init__degree = math.floor(init__degree / 360)
-        index = np.arange(360)
+        index = np.arange(self.sim_info['step_range'])
         step_size = self.sim_info['step_size']
         switch_count = self.sim_info['sec_per_cycle_degree']
 
         index = np.tile(index, (4, 1))
 
-        scalar = np.tile(part_dict['info']['trans_r'], (360, 1)).T
-        growth = np.tile(part_dict['info']['trans_t'], (360, 1)).T
+        scalar = np.tile(part_dict['info']['trans_r'], (self.sim_info['step_range'], 1)).T
+        growth = np.tile(part_dict['info']['trans_t'], (self.sim_info['step_range'], 1)).T
 
         denom = np.subtract(np.exp(np.divide(-360 / step_size * switch_count, growth)), 1)
         num1 = np.negative(np.exp(np.divide(np.multiply(-switch_count * 0.5, np.add(720 / step_size * init__degree + 720 / step_size + 1, np.multiply(2, index))), growth)))
@@ -391,7 +295,7 @@ class Module:
         looking_for_rth = True
 
         if self.module['thermal_interp_is_four_degree']:
-            degree_count = -self.sim_info['step_range']
+            degree_count = -360
             attempt_count = 0
             transient_history = [0]
             degree = [-1, 0]
@@ -423,13 +327,46 @@ class Module:
                 time_step = np.arange(self.sim_info['step_range']) * self.sim_info['sec_per_cycle_degree'] + time_value
                 rth_fwd_int += self.calculate__rth_from_time(self.fwd, time_step)
                 rth_igbt_int += self.calculate__rth_from_time(self.igbt, time_step)
-                time_value += self.sim_info['sec_per_cycle_degree'] / self.sim_info['step_size'] * 360
+                time_value += self.sim_info['sec_per_cycle_degree'] * self.sim_info['step_range']
                 if rth_igbt_int[-1] / igbt_dc_rth >= 0.99 and rth_fwd_int[-1] / fwd_dc_rth >= 0.99:
                     looking_for_rth = False
 
         self.igbt['info']['rth_dict'] = rth_igbt_int
         self.fwd['info']['rth_dict'] = rth_fwd_int
         self.module['tj_max']['time_value'] = time_value
+
+    def set__rg(self, input_instance, system_instance, module_location=None):
+        if not input_instance.get__input_rg_flag():
+            system_instance.set__rg_flag(True)
+            if module_location is None:
+                rg_on = system_instance.get__input_rg_on()
+                rg_off = system_instance.get__input_rg_off()
+            elif module_location is 'inside':
+                rg_on = system_instance.get__input_rg_on_inside()
+                rg_off = system_instance.get__input_rg_off_inside()
+            elif module_location is 'outside':
+                rg_on = system_instance.get__input_rg_on_outside()
+                rg_off = system_instance.get__input_rg_off_outside()
+                self.fwd['info']['err_rg_scalar'] = self.fwd['info']['rg_on_err'](system_instance.get__input_rg_on_outside())
+            else:
+                self.igbt['info']['esw_on_rg_scalar'] = self.sim_info['switching_scalar']
+                self.igbt['info']['esw_off_rg_scalar'] = self.sim_info['switching_scalar']
+                self.fwd['info']['err_rg_scalar'] = self.sim_info['switching_scalar']
+                return
+            self.igbt['info']['esw_on_rg_scalar'] = self.igbt['info']['rg_on_esw_on'](rg_on) * self.sim_info['switching_scalar']
+            self.igbt['info']['esw_off_rg_scalar'] = self.igbt['info']['rg_off_esw_off'](rg_off) * self.sim_info['switching_scalar']
+            self.fwd['info']['err_rg_scalar'] = self.fwd['info']['rg_on_err'](rg_on) * self.sim_info['switching_scalar']
+        else:
+            system_instance.set__rg_flag(False)
+            self.igbt['info']['esw_on_rg_scalar'] = self.sim_info['switching_scalar']
+            self.igbt['info']['esw_off_rg_scalar'] = self.sim_info['switching_scalar']
+            self.fwd['info']['err_rg_scalar'] = self.sim_info['switching_scalar']
+
+    def set__current_igbt(self, current):
+        self.igbt['current'] = current
+
+    def set__current_fwd(self, current):
+        self.fwd['current'] = current
 
     def get__corrected_esw(self, esw_array):
         if 0 not in esw_array:
@@ -454,3 +391,63 @@ class Module:
             return 'N/A'
         else:
             return module_file['Module Name']
+
+    def get__max_current(self):
+        return max(self.fwd['temps']['max_nom'], self.igbt['temps']['max_nom'])
+
+    def get__igbt_loss_total(self):
+        return self.igbt['loss_totals']['device']
+
+    def get__fwd_loss_total(self):
+        return self.fwd['loss_totals']['device']
+
+    def get__conduction_loss_igbt(self):
+        return self.igbt['loss_totals']['conduction']
+
+    def get__conduction_loss_fwd(self):
+        return self.fwd['loss_totals']['conduction']
+
+    def get__esw_loss_total(self):
+        return self.igbt['loss_totals']['esw']
+
+    def get__module_loss_total(self):
+        return self.module['loss_totals']['module']
+
+    def get__delta_tj_max_igbt(self):
+        return self.igbt['temps']['max_delta']
+
+    def get__nom_tj_max_igbt(self):
+        return self.igbt['temps']['max_nom']
+
+    def get__delta_tj_ave_igbt(self):
+        return self.igbt['temps']['ave_delta']
+
+    def get__nom_tj_ave_igbt(self):
+        return self.igbt['temps']['ave_nom']
+
+    def get__delta_tj_max_fwd(self):
+        return self.fwd['temps']['max_delta']
+
+    def get__nom_tj_max_fwd(self):
+        return self.fwd['temps']['max_nom']
+
+    def get__delta_tj_ave_fwd(self):
+        return self.fwd['temps']['ave_delta']
+
+    def get__nom_tj_ave_fwd(self):
+        return self.fwd['temps']['ave_nom']
+
+    def get__esw_on_loss_total(self):
+        return self.igbt['loss_totals']['esw_on']
+
+    def get__module_name(self):
+        return self.module['name']
+
+    def get__t_case_ave(self):
+        return self.module['temps']['t_case']
+
+    def get__esw_off_loss_total(self):
+        return self.igbt['loss_totals']['esw_off']
+
+    def get__err_loss_total(self):
+        return self.fwd['loss_totals']['err']
