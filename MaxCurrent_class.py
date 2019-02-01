@@ -1,4 +1,3 @@
-import System_class
 class MaxCurrent:
     def __init__(self):
         self.searching_for_max_current = True
@@ -40,5 +39,3 @@ class MaxCurrent:
             return module_two
         if max_3 == max_tot:
             return module_three
-
-

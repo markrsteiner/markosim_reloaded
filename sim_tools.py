@@ -1,14 +1,9 @@
-import math
 import os
 from time import strftime
 
 import xlsxwriter
-from numpy import transpose, ndarray, append, delete
+from numpy import ndarray, append
 from pandas import DataFrame, ExcelWriter, Series
-
-import calculate__two_level
-
-
 
 
 def output_file_three_level_writer(output_file, output_file_directory):
@@ -89,8 +84,7 @@ def output_file_three_level_writer(output_file, output_file_directory):
     f.close()
 
 
-
-def output_file_wrangler(output_file_a, output_file_b): #todo what was this needed for
+def output_file_wrangler(output_file_a, output_file_b):  # todo what was this needed for
     if type(output_file_b['Vcc [V]']) is ndarray:
         for key in output_file_b.keys():
             if key in output_file_a.keys():
@@ -108,7 +102,7 @@ def get_col_widths(dataframe):  # todo fix this
     return [idx_max] + [max([len(str(s)) for s in dataframe[col].values] + [len(col)]) for col in dataframe.columns]
 
 
-def input_file_template_maker(file_location):
+def make__two_level_template(file_location):
     row_list = [['Vcc [V]',
                  'Io [Apk]',
                  'PF [cos(\u03D5)]',
@@ -119,7 +113,103 @@ def input_file_template_maker(file_location):
                  'rg off [\u03A9]',
                  'Ts [\u00B0C]'
                  ]]
-    workbook = xlsxwriter.Workbook(file_location + '/input_file_template.xlsx')
+    workbook = xlsxwriter.Workbook(file_location + '/input_file_two_level_template.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.set_column('A:A', 20)
+    row_list_map = row_list[0]
+    worksheet.write(0, 0, "Iteration")
+    worksheet.write(0, 1, "1")
+    worksheet.write(0, 2, "3")
+    worksheet.write(0, 3, "3")
+    for x in range(len(row_list_map)):
+        worksheet.write(0, x + 1, row_list_map[x])
+    workbook.close()
+
+
+def make__three_level_template(file_location):
+    row_list = [['Vcc [V]',
+                 'Io [Apk]',
+                 'PF [cos(\u03D5)]',
+                 'Mod. Depth',
+                 'fc [kHz]',
+                 'fo [Hz]',
+                 'Inside rg on [\u03A9]',
+                 'Inside rg off [\u03A9]',
+                 'Outside rg on [\u03A9]',
+                 'Outside rg off [\u03A9]',
+                 'Ts [\u00B0C]'
+                 ]]
+    workbook = xlsxwriter.Workbook(file_location + '/input_file__three_level_template.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.set_column('A:A', 20)
+    row_list_map = row_list[0]
+    worksheet.write(0, 0, "Iteration")
+    worksheet.write(0, 1, "1")
+    worksheet.write(0, 2, "3")
+    worksheet.write(0, 3, "3")
+    for x in range(len(row_list_map)):
+        worksheet.write(0, x + 1, row_list_map[x])
+    workbook.close()
+
+
+def make__six_step_template(file_location):
+    row_list = [['Vcc [V]',
+                 'Io [Apk]',
+                 'Duty',
+                 'fc [kHz]',
+                 'fo [Hz]',
+                 'Upper rg on [\u03A9]',
+                 'Upper rg off [\u03A9]',
+                 'Lower rg on [\u03A9]',
+                 'Lower rg off [\u03A9]',
+                 'Ts [\u00B0C]'
+                 ]]
+    workbook = xlsxwriter.Workbook(file_location + '/input_file__six_step_template.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.set_column('A:A', 20)
+    row_list_map = row_list[0]
+    worksheet.write(0, 0, "Iteration")
+    worksheet.write(0, 1, "1")
+    worksheet.write(0, 2, "3")
+    worksheet.write(0, 3, "3")
+    for x in range(len(row_list_map)):
+        worksheet.write(0, x + 1, row_list_map[x])
+    workbook.close()
+
+
+def make__chopper_template(file_location):
+    row_list = [['V_in [V]',
+                 'V_out [V]',
+                 'Io [Apk]',
+                 'Duty',
+                 'fc [kHz]',
+                 'rg on [\u03A9]',
+                 'rg off [\u03A9]',
+                 'Ts [\u00B0C]'
+                 ]]
+    workbook = xlsxwriter.Workbook(file_location + '/input_file__chopper_template.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.set_column('A:A', 20)
+    row_list_map = row_list[0]
+    worksheet.write(0, 0, "Iteration")
+    worksheet.write(0, 1, "1")
+    worksheet.write(0, 2, "3")
+    worksheet.write(0, 3, "3")
+    for x in range(len(row_list_map)):
+        worksheet.write(0, x + 1, row_list_map[x])
+    workbook.close()
+
+
+def make__motor_lock_template(file_location):
+    row_list = [['Vcc [V]',
+                 'Io [Apk]',
+                 'Duty',
+                 'fc [kHz]',
+                 'rg on [\u03A9]',
+                 'rg off [\u03A9]',
+                 'Ts [\u00B0C]'
+                 ]]
+    workbook = xlsxwriter.Workbook(file_location + '/input_file__motor_lock_template.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.set_column('A:A', 20)
     row_list_map = row_list[0]
@@ -167,4 +257,3 @@ def module_file_template_maker(file_location):
     for x in range(len(row_list_map)):
         worksheet.write(0, x + 1, row_list_map[x])
     workbook.close()
-

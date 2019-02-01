@@ -8,22 +8,18 @@ def rename_section(file, module_value, old_string, new_string):
     del file[module_value][old_string]
     return file
 
-with open('Modules.xml', errors='ignore') as f:
+
+with open('FullModules.xml', errors='ignore') as f:
     files = xmltodict.parse(f.read())
 
-
-
-print(files['DataSheet'])
-
-clean_files_list = files['DataSheet']['Module']
+clean_files_list = files['xml']['DataSheet']['Module']
 
 clean_files = {}
 
 print(clean_files_list[0]['Name'])
 
 for x in range(len(clean_files_list)):
-    clean_files[str(clean_files_list[x]['Name'])+" @ TJ="+str(clean_files_list[x]['Tch'])] = clean_files_list[x]
-
+    clean_files[str(clean_files_list[x]['Name']) + " @ TJ=" + str(clean_files_list[x]['Tch'])] = clean_files_list[x]
 
 for value in clean_files:
     if clean_files[value]['Division'] == 'DIP-CIB':
@@ -45,10 +41,10 @@ for value in clean_files:
         clean_files[value]['Division'] = 'MOSFET Modules'
         # clean_files = rename_value(clean_files,value,'Division','Old')
 
-    clean_files = rename_section(clean_files,value,'Vcc','vcc_value')
-    clean_files = rename_section(clean_files,value,'ThermalContactResistance','Module RTH DC')
-    clean_files = rename_section(clean_files,value,'RatedVoltage','Nameplate Voltage')
-    clean_files = rename_section(clean_files,value,'RatedCurrent','Nameplate Current')
+    clean_files = rename_section(clean_files, value, 'Vcc', 'vcc_value')
+    clean_files = rename_section(clean_files, value, 'ThermalContactResistance', 'Module RTH DC')
+    clean_files = rename_section(clean_files, value, 'RatedVoltage', 'Nameplate Voltage')
+    clean_files = rename_section(clean_files, value, 'RatedCurrent', 'Nameplate Current')
     clean_files = rename_section(clean_files, value, 'BaseData', 'base_data_unknown')
     clean_files = rename_section(clean_files, value, 'Deprecation', 'deprecation_unknown')
     clean_files = rename_section(clean_files, value, 'ElementNumber', 'number_of_switches')
@@ -76,7 +72,7 @@ for value in clean_files:
     clean_files[value]['melco_data_unused'].update({'base_data_unknown': clean_files[value]['base_data_unknown']})
     # clean_files[value]['melco_data_unused'].update({'priority_unknown': clean_files[value]['priority_unknown']})
     clean_files[value]['melco_data_unused'].update({'deprecation_unknown': clean_files[value]['deprecation_unknown']})
-    clean_files[value]['melco_data_unused'].update({'segment':clean_files[value]['segment'],
+    clean_files[value]['melco_data_unused'].update({'segment': clean_files[value]['segment'],
                                                     'switching_element_unknown': clean_files[value]['switching_element_unknown'],
                                                     'lower_unknown': clean_files[value]['lower_unknown']})
     clean_files[value]['min_base_and_max_vals'].update({
@@ -280,14 +276,14 @@ for value in clean_files:
         clean_files[value]['id_vsd_on']['vsd_on__vsd_on_id_vsd_on'] = vsd_on__vsd_on_id_vsd_on__temp
     else:
         id__id_vsd_on__temp = [1, 10000]
-        vsd_on__vsd_on_id_vsd_on__temp = [1,1]
+        vsd_on__vsd_on_id_vsd_on__temp = [1, 1]
 
     clean_files[value]['IGBT R Values'] = []
     clean_files[value]['IGBT T Values'] = []
     clean_files[value]['FWD R Values'] = []
     clean_files[value]['FWD T Values'] = []
 
-    for rth_val in range(0,4):
+    for rth_val in range(0, 4):
         if rth_val == 0:
             igbt_r = clean_files[value]['R1TrPerR0']
             igbt_t = clean_files[value]['T1TrPerJ1']
@@ -343,11 +339,11 @@ for value in clean_files:
     if clean_files[value]['Division'] in clean_files_div.keys():
         clean_files_temp = clean_files[value]['Division']
         del clean_files[value]['Division']
-        clean_files_div[clean_files_temp].update({value:clean_files[value]})
+        clean_files_div[clean_files_temp].update({value: clean_files[value]})
     else:
         clean_files_temp = clean_files[value]['Division']
         del clean_files[value]['Division']
-        clean_files_div.update({clean_files_temp:{value:clean_files[value]}})
+        clean_files_div.update({clean_files_temp: {value: clean_files[value]}})
 
 clean_files = clean_files_div
 
@@ -395,12 +391,12 @@ for value in blab:
         if clean_files[value][value2]['Nameplate Voltage'] in clean_files[value].keys():
             clean_files_temp = clean_files[value][value2]['Nameplate Voltage']
             del clean_files[value][value2]['Nameplate Voltage']
-            clean_files[value][clean_files_temp].update({value2:clean_files[value][value2]})
+            clean_files[value][clean_files_temp].update({value2: clean_files[value][value2]})
         else:
             clean_files_temp = clean_files[value][value2]['Nameplate Voltage']
             del clean_files[value][value2]['Nameplate Voltage']
-            clean_files[value].update({clean_files_temp:{}})
-            clean_files[value][clean_files_temp].update({value2:clean_files[value][value2]})
+            clean_files[value].update({clean_files_temp: {}})
+            clean_files[value][clean_files_temp].update({value2: clean_files[value][value2]})
         del clean_files[value][value2]
 
 blab = copy.deepcopy(clean_files)
@@ -411,14 +407,13 @@ for value in blab:
             if clean_files[value][value2][value3]['Series'] in clean_files[value][value2].keys():
                 clean_files_temp = clean_files[value][value2][value3]['Series']
                 del clean_files[value][value2][value3]['Series']
-                clean_files[value][value2][clean_files_temp].update({value3:clean_files[value][value2][value3]})
+                clean_files[value][value2][clean_files_temp].update({value3: clean_files[value][value2][value3]})
             else:
                 clean_files_temp = clean_files[value][value2][value3]['Series']
                 del clean_files[value][value2][value3]['Series']
-                clean_files[value][value2].update({clean_files_temp:{}})
-                clean_files[value][value2][clean_files_temp].update({value3:clean_files[value][value2][value3]})
+                clean_files[value][value2].update({clean_files_temp: {}})
+                clean_files[value][value2][clean_files_temp].update({value3: clean_files[value][value2][value3]})
             del clean_files[value][value2][value3]
-
 
 # clean_files['HVIGBT']['6500'] = clean_files['HVIGBT']['3600']
 # del clean_files['HVIGBT']['3600']

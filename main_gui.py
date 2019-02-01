@@ -1,27 +1,19 @@
+import atexit
+import json
+import logging
 import os
 import sys
-import json
 import time
-from os.path import basename
 import traceback
-import logging
-import copy
-from logging.handlers import RotatingFileHandler
-import ModuleJSON_class
 from functools import partial
+from logging.handlers import RotatingFileHandler
+import numpy.core._dtype_ctypes
 
+from PyQt5 import QtCore, QtWidgets
+
+import ModuleJSON_class
 import Simulation_class
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from numpy import arange, logspace
-from scipy.interpolate import splev, splrep  # for curve smoothing
-
 import sim_tools
-import cProfile
-
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
@@ -418,6 +410,10 @@ class Ui_MainWindow(object):
         self.action3_Level.setObjectName("action3_Level")
         self.actionChopper = QtWidgets.QAction(MainWindow)
         self.actionChopper.setObjectName("actionChopper")
+        self.actionSixStep = QtWidgets.QAction(MainWindow)
+        self.actionSixStep.setObjectName("actionSixStep")
+        self.actionMotorLock = QtWidgets.QAction(MainWindow)
+        self.actionMotorLock.setObjectName("actionMotorLock")
         self.actionCreate_Module_Template = QtWidgets.QAction(MainWindow)
         self.actionCreate_Module_Template.setObjectName("actionCreate_Module_Template")
         self.actionNo_one_can_help_you_now = QtWidgets.QAction(MainWindow)
@@ -425,6 +421,8 @@ class Ui_MainWindow(object):
         self.menuCreate_Input_Template.addAction(self.action2_Level)
         self.menuCreate_Input_Template.addAction(self.action3_Level)
         self.menuCreate_Input_Template.addAction(self.actionChopper)
+        self.menuCreate_Input_Template.addAction(self.actionSixStep)
+        self.menuCreate_Input_Template.addAction(self.actionMotorLock)
         self.menuFile.addAction(self.actionOpen_Datasheet_Compare)
         self.menuFile.addAction(self.actionOpen_Single_Simulation)
         self.menuFile.addAction(self.menuCreate_Input_Template.menuAction())
@@ -497,6 +495,8 @@ class Ui_MainWindow(object):
         self.action2_Level.setText(_translate("MainWindow", "2 Level"))
         self.action3_Level.setText(_translate("MainWindow", "3 Level"))
         self.actionChopper.setText(_translate("MainWindow", "Chopper"))
+        self.actionSixStep.setText(_translate("MainWindow", "Six Step"))
+        self.actionMotorLock.setText(_translate("MainWindow", "Motor Lock"))
         self.actionCreate_Module_Template.setText(_translate("MainWindow", "Create Module Template"))
         self.actionNo_one_can_help_you_now.setText(_translate("MainWindow", "No one can help you now"))
 
@@ -531,7 +531,16 @@ class Ui_MainWindow(object):
         self.pullModuleFileStack_chopper_Chopper.clicked.connect(partial(self.set__target_from_module_stack, self.chopperModuleListWidget_Chopper))
         self.pullModuleFileStack_diode_Chopper.clicked.connect(partial(self.set__target_from_module_stack, self.diodeModuleListWidget_Chopper))
 
+        self.action2_Level.triggered.connect(self.click__templateInputFileButton_TwoLevel)
+        self.action3_Level.triggered.connect(self.click__templateInputFileButton_ThreeLevel)
+        self.actionChopper.triggered.connect(self.click__templateInputFileButton_Chopper)
+        self.actionMotorLock.triggered.connect(self.click__templateInputFileButton_MotorLock)
+        self.actionSixStep.triggered.connect(self.click__templateInputFileButton_SixStep)
+        self.actionCreate_Module_Template.triggered.connect(self.click__templateModuleFileButton)
+
         self.pushButton.clicked.connect(self.click__run_simulation)
+
+        atexit.register(self.save__module_file)
 
         # self.templateInputFileButton_TwoLevel.clicked.connect(self.click__templateInputFileButton_TwoLevel)
         # self.templateModuleFileButton_TwoLevel.clicked.connect(self.click__templateModuleFileButton)
@@ -568,7 +577,8 @@ class Ui_MainWindow(object):
         if user_input__module_file is not "":
             user_input__part_category, _ = QtWidgets.QInputDialog.getText(None, "Part Description", "Please enter a part description (i.e. Automotive, Competitor Name, etc.)")
             user_input__voltage_class_category, _ = QtWidgets.QInputDialog.getText(None, "Voltage Class", "Please enter a voltage class (i.e. 650, 1200, etc.)")
-            refactored_module_file = ModuleJSON_class.ModuleForJSON(user_input__module_file)
+            module_JSON_machine = ModuleJSON_class.ModuleForJSON(user_input__module_file)
+            refactored_module_file = module_JSON_machine.get__JSON_ready_dict()
             if "My Files" not in self.master_module_file_dict.keys():
                 self.master_module_file_dict.update({"My Files": {user_input__part_category: {user_input__voltage_class_category: refactored_module_file}}})
             else:
@@ -618,7 +628,7 @@ class Ui_MainWindow(object):
             count = 0
 
     def load_module_info(self):
-        with open('module_info.json') as f:
+        with open('module_info.json', encoding='utf8') as f:
             self.master_module_file_dict = json.loads(f.read())
 
     def open__simulation_file(self):
@@ -636,6 +646,14 @@ class Ui_MainWindow(object):
             return
 
         user_input__output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
+
+        step_size_list = [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 60, 72, 90, 120, 180]
+        if self.enableStepSize.isChecked():
+            step_size = step_size_list[next(ii for ii, v in enumerate(step_size_list) if (v > self.stepSizeValue.value())) - 1]
+            self.stepSizeValue.setValue(step_size)
+            self.popup__warning_box("A reduced step-size has been enabled.\nDecreased simulation time will result in a lower simulation accuracy.\n\nProceed with caution.")
+        else:
+            step_size = 1
 
         if user_input__output_file_location == "":
             self.popup__error_box("No output file selected.")
@@ -666,7 +684,8 @@ class Ui_MainWindow(object):
                                                                   three_level_flag,
                                                                   module_max_temp=self.maxCurrentTemp.value(),
                                                                   nerd_output_flag=self.advancedOutputCheckbox.isChecked(),
-                                                                  tj_hold_flag=self.maxCurrentOutputEnable.isChecked())
+                                                                  tj_hold_flag=self.maxCurrentOutputEnable.isChecked(),
+                                                                  step_size=step_size)
 
         if self.mainTabWidget.currentIndex() == 1:
             simulation_instance.load__module_filename_list(module_list)
@@ -689,6 +708,14 @@ class Ui_MainWindow(object):
         msg.setIcon(QtWidgets.QMessageBox.Information)
         msg.setText(input_string)
         msg.setWindowTitle("Error")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+        msg.exec_()
+
+    def popup__warning_box(self, input_string):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setText(input_string)
+        msg.setWindowTitle("Warning")
         msg.setStandardButtons(QtWidgets.QMessageBox.Cancel)
         msg.exec_()
 
@@ -728,7 +755,7 @@ class Ui_MainWindow(object):
     def click__templateInputFileButton_TwoLevel(self):
         output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
         if output_file_location is not "":
-            sim_tools.input_file_template_maker(output_file_location)
+            sim_tools.make__two_level_template(output_file_location)
 
     def click__templateModuleFileButton(self):  # Module file will still apply for all devices
         output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
@@ -738,7 +765,26 @@ class Ui_MainWindow(object):
     def click__templateInputFileButton_ThreeLevel(self):  # will need to fix when three level input template is made
         output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
         if output_file_location is not "":
-            sim_tools.input_file_template_maker(output_file_location)
+            sim_tools.make__three_level_template(output_file_location)
+
+    def click__templateInputFileButton_Chopper(self):  # will need to fix when three level input template is made
+        output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
+        if output_file_location is not "":
+            sim_tools.make__chopper_template(output_file_location)
+
+    def click__templateInputFileButton_MotorLock(self):  # will need to fix when three level input template is made
+        output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
+        if output_file_location is not "":
+            sim_tools.make__motor_lock_template(output_file_location)
+
+    def click__templateInputFileButton_SixStep(self):  # will need to fix when three level input template is made
+        output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
+        if output_file_location is not "":
+            sim_tools.make__six_step_template(output_file_location)
+
+    def save__module_file(self):
+        with open('module_info.json', 'w') as f:
+            json.dump(self.master_module_file_dict, f)
 
     # def click__module_file_template(self):
     #     output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())

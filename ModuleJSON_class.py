@@ -8,6 +8,7 @@ class ModuleForJSON:
     def __init__(self, module_filename):
         self.module_dict = self.module_file_reader(module_filename)
         self.output_dict = {}
+        self.output_dict = self.make__JSON_ready_dict()
 
     def module_file_reader(self, module_file):
         module_string = module_file
@@ -18,18 +19,30 @@ class ModuleForJSON:
 
         for x in range(len(row_list)):
             value_dict[row_list[x]] = self.pull_data_from_column(module_string, row_list[x], None)
-        for x in range(np.size(row_list)):
-            if np.size(value_dict[row_list[x]]) == 1:
-                value_dict[row_list[x]] = value_dict[row_list[x]][0]
+        # for x in range(len(row_list)):
+        #     if len(value_dict[row_list[x]]) == 1:
+        #         value_dict[row_list[x]] = value_dict[row_list[x]][0]
         return value_dict
 
     def pull_data_from_column(self, module_file, column_string, indexcol):  # seems unnecessary
         df = pd.read_excel(module_file, index_col=indexcol)
         x = df[column_string].values
         x = x[~pd.isnull(x)]
+        if type(x) is np.ndarray:
+            if np.size(x) > 1:
+                x = x.tolist()
+            elif np.size(x) == 1:
+                x = x[0]
+            else:
+                x = None
+        if type(x) is np.float64:
+            x = x.item()
         return x
 
-    def get_JSON_ready_dict(self):
+    def get__JSON_ready_dict(self):
+        return self.output_dict
+
+    def make__JSON_ready_dict(self):
         ic__ic_esw_on = self.module_dict["IC - IC ESWON"]
         esw_on__ic_esw_on = self.module_dict["ESWON - IC ESWON"]
         ic__ic_esw_off = self.module_dict["IC - IC ESWOFF"]
@@ -42,8 +55,8 @@ class ModuleForJSON:
         err__ic_err = self.module_dict["ERR - IC ERR"]
         rg_on__err_rg_on = self.module_dict["RGON - ERR RGON"]
         err__err_rg_on = self.module_dict["ERR - ERR RGON"]
-        nameplate_vcc = self.module_dict['Nameplate VCC']
-        vcc_ratio = self.module_dict['vcc_ratio']
+        # nameplate_vcc = self.module_dict['Nameplate VCC'] # todo fix this
+        # vcc_ratio = self.module_dict['vcc_ratio']
         module_name = self.module_dict['Module Name']
         ic__ic_vce = self.module_dict['IC - IC VCE']
         vce__ic_vce = self.module_dict['VCE - IC VCE']

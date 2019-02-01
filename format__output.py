@@ -1,6 +1,3 @@
-import System_class
-import Module_class
-
 def build__output_view_dict(system, inside_module, outside_module=None, diode_module=None):
     is_three_level = outside_module is not None and diode_module is not None
     if is_three_level:

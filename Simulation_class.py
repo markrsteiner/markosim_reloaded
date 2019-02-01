@@ -11,12 +11,13 @@ import format__output
 
 
 class InputOperation:
-    def __init__(self, module_file_dict, rg_suppress_flag, modulation_type, three_level_flag=False, tj_hold_flag=False, module_max_temp=None, nerd_output_flag=False):
+    def __init__(self, module_file_dict, rg_suppress_flag, modulation_type, three_level_flag=False, tj_hold_flag=False, module_max_temp=None, nerd_output_flag=False, step_size = 1):
         self.index__user_input = -1
         self.index__module = 0
         self.module_file_dict = module_file_dict
         self.rg_suppress_flag = rg_suppress_flag
         self.nerd_output_flag = nerd_output_flag
+        self.step_size = step_size
         self.user_inputs = []
         self.user_input_length = 0
         self.modulation_type = modulation_type
@@ -45,6 +46,9 @@ class InputOperation:
         self.index__module = 0
         self.rg_suppress_flag = False
         self.nerd_output_flag = False
+
+    def get__step_size(self):
+        return self.step_size
 
     def get__total_simulation_length(self):
         self.total_sim_length = self.module_list_length * self.user_input_length
@@ -156,43 +160,43 @@ class InputOperation:
 
         return value_dict
 
-    def build__module_file_header(self):
-        return ["Module Name",
-                "IC - IC VCE",
-                "VCE - IC VCE",
-                "IF - IF VF",
-                "VF - IF VF",
-                "IC - IC ESWON",
-                "ESWON - IC ESWON",
-                "IC - IC ESWOFF",
-                "ESWOFF - IC ESWOFF",
-                "IC - IC ERR",
-                "ERR - IC ERR",
-                "ESWON - ESWON RGON",
-                "RGON - ESWON RGON",
-                "ESWOFF - ESWOFF RGOFF",
-                "RGOFF - ESWOFF RGOFF",
-                "ERR - ERR RGON",
-                "RGON - ERR RGON",
-                "IGBT R Values",
-                "IGBT T Values",
-                "FWD R Values",
-                "FWD T Values",
-                "IGBT RTH DC",
-                "FWD RTH DC",
-                "Module RTH DC",
-                "Nameplate VCC",
-                "Nameplate Current"
-                ]
-
-        # value_dict = {}
-        #
-        # for x in range(len(row_list)):
-        #     value_dict[row_list[x]] = self.pull_data_from_column(module_string, row_list[x], None)
-        # for x in range(np.size(row_list)):
-        #     if np.size(value_dict[row_list[x]]) == 1:
-        #         value_dict[row_list[x]] = value_dict[row_list[x]][0]
-        return value_dict
+    # def build__module_file_header(self):
+    #     return ["Module Name",
+    #             "IC - IC VCE",
+    #             "VCE - IC VCE",
+    #             "IF - IF VF",
+    #             "VF - IF VF",
+    #             "IC - IC ESWON",
+    #             "ESWON - IC ESWON",
+    #             "IC - IC ESWOFF",
+    #             "ESWOFF - IC ESWOFF",
+    #             "IC - IC ERR",
+    #             "ERR - IC ERR",
+    #             "ESWON - ESWON RGON",
+    #             "RGON - ESWON RGON",
+    #             "ESWOFF - ESWOFF RGOFF",
+    #             "RGOFF - ESWOFF RGOFF",
+    #             "ERR - ERR RGON",
+    #             "RGON - ERR RGON",
+    #             "IGBT R Values",
+    #             "IGBT T Values",
+    #             "FWD R Values",
+    #             "FWD T Values",
+    #             "IGBT RTH DC",
+    #             "FWD RTH DC",
+    #             "Module RTH DC",
+    #             "Nameplate VCC",
+    #             "Nameplate Current"
+    #             ]
+    #
+    #     # value_dict = {}
+    #     #
+    #     # for x in range(len(row_list)):
+    #     #     value_dict[row_list[x]] = self.pull_data_from_column(module_string, row_list[x], None)
+    #     # for x in range(np.size(row_list)):
+    #     #     if np.size(value_dict[row_list[x]]) == 1:
+    #     #         value_dict[row_list[x]] = value_dict[row_list[x]][0]
+    #     return value_dict
 
     def pull_data_from_column(self, module_file, column_string, indexcol):  # seems unnecessary
         df = pd.read_excel(module_file, index_col=indexcol)
@@ -329,7 +333,7 @@ class InputOperation:
         workbook = xl_writer.book
         df.to_excel(xl_writer, index=False, header=False)
         worksheet = xl_writer.sheets['Sheet1']
-        worksheet, workbook = format__output.output_worksheet_formatter(df, workbook, worksheet)
+        # worksheet, workbook = format__output.output_worksheet_formatter(df, workbook, worksheet)
         xl_writer.save()
         self.reset_all()
 
@@ -356,3 +360,6 @@ class InputOperation:
             workbook = xl_writer.book
             df_nerd.to_excel(xl_writer)
             xl_writer.save()
+
+    def get__three_level_flag(self):
+        return self.three_level_flag
