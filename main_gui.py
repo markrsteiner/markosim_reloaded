@@ -786,16 +786,6 @@ class Ui_MainWindow(object):
         with open('module_info.json', 'w') as f:
             json.dump(self.master_module_file_dict, f)
 
-    # def click__module_file_template(self):
-    #     output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
-    #     if output_file_location is not "":
-    #         sim_tools.module_file_template_maker(output_file_location)
-    #
-    # def click__input_file_template_two_level(self):
-    #     output_file_location = QtWidgets.QFileDialog.getExistingDirectory(None, "Output File Location", os.getcwd())
-    #     if output_file_location is not "":
-    #         sim_tools.input_file_template_maker(output_file_location)
-
     # !!! DON'T DELETE YET, NOT IMPLEMENTED
 
     # def click__datasheet_compare(self):
