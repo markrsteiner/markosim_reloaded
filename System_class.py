@@ -14,15 +14,16 @@ class System:
         self.input_t_sink = float(user_input_file['Ts [\u00B0C]'])
         self.input_modulation_type = simulation_instance.get__modulation_type()
         self.input_freq_carrier = float(user_input_file['fc [kHz]'])
-        self.input_rg_on = float(user_input_file['rg on [\u03A9]'])
-        self.input_rg_off = float(user_input_file['rg off [\u03A9]'])
-        self.input_rg_on_inside = 0
-        self.input_rg_off_inside = 0
-        self.input_rg_on_outside = 0
-        self.input_rg_off_outside = 0
         self.is_three_level = simulation_instance.get__three_level_flag()
         if self.is_three_level:
             self.input_bus_voltage /= 2
+            self.input_rg_on_inside = float(user_input_file['Inside rg on [\u03A9]'])
+            self.input_rg_off_inside = float(user_input_file['Inside rg off [\u03A9]'])
+            self.input_rg_on_outside = float(user_input_file['Outside rg on [\u03A9]'])
+            self.input_rg_off_outside = float(user_input_file['Outside rg off [\u03A9]'])
+        else:
+            self.input_rg_on = float(user_input_file['rg on [\u03A9]'])
+            self.input_rg_off = float(user_input_file['rg off [\u03A9]'])
         self.rg_output_flag = True
         self.input_power_factor = float(user_input_file['PF [cos(\u03D5)]'])
         self.step_size = simulation_instance.get__step_size()
@@ -59,6 +60,14 @@ class System:
         is_three_level = outside_module is not None and diode_module is not None
         if is_three_level:
             self.system_output_view = format__output.build__output_view_dict(self, inside_module, outside_module, diode_module)
+            self.system_output_view.update({'Modulation': self.input_modulation_type})
+            if not self.rg_output_flag:
+                self.system_output_view.update({
+                    'Outside rg on [\u03A9]': "STOCK",
+                    'Outside rg off [\u03A9]': "STOCK",
+                    'Inside rg on [\u03A9]': "STOCK",
+                    'Inside rg off [\u03A9]': "STOCK"
+                })
         else:
             self.system_output_view = format__output.build__output_view_dict(self, inside_module)
             self.system_output_view.update({'Modulation': self.input_modulation_type})

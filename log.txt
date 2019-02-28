@@ -25,3 +25,58 @@ json.decoder.JSONDecodeError: Expecting ':' delimiter: line 1 column 180346 (cha
     self.actionCreate_Module_Template.triggered.connection(self.click__templateModuleFileButton)
 AttributeError: 'PyQt5.QtCore.pyqtBoundSignal' object has no attribute 'connection'
 
+2019-02-22 09:24:07,639 - Rotating Log - ERROR - [Errno 2] No such file or directory: 'module_info.json'
+2019-02-22 09:24:07,639 - Rotating Log - ERROR - Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 948, in <module>
+    ui.setupUi(MainWindow)
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 437, in setupUi
+    self.setup__widgets_and_views()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 510, in setup__widgets_and_views
+    self.load_module_info()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 631, in load_module_info
+    with open('module_info.json', encoding='utf8') as f:
+FileNotFoundError: [Errno 2] No such file or directory: 'module_info.json'
+
+2019-02-22 10:35:28,445 - Rotating Log - ERROR - module 'sys' has no attribute '_MEIPASS'
+2019-02-22 10:35:28,447 - Rotating Log - ERROR - Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 964, in <module>
+    ui.setupUi(MainWindow)
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 437, in setupUi
+    self.setup__widgets_and_views()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 510, in setup__widgets_and_views
+    self.load_module_info()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 626, in load_module_info
+    wd = sys._MEIPASS
+AttributeError: module 'sys' has no attribute '_MEIPASS'
+
+2019-02-22 10:48:44,547 - Rotating Log - ERROR - module 'sys' has no attribute '_MEIPASS'
+2019-02-22 10:48:44,547 - Rotating Log - ERROR - Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 967, in <module>
+    ui.setupUi(MainWindow)
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 437, in setupUi
+    self.setup__widgets_and_views()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 510, in setup__widgets_and_views
+    self.load_module_info()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 626, in load_module_info
+    wd = sys._MEIPASS
+AttributeError: module 'sys' has no attribute '_MEIPASS'
+
+2019-02-22 10:50:06,603 - Rotating Log - ERROR - module 'os' has no attribute 'get_cwd'
+2019-02-22 10:50:06,603 - Rotating Log - ERROR - Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 627, in load_module_info
+    wd = sys._MEIPASS
+AttributeError: module 'sys' has no attribute '_MEIPASS'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 973, in <module>
+    ui.setupUi(MainWindow)
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 437, in setupUi
+    self.setup__widgets_and_views()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 510, in setup__widgets_and_views
+    self.load_module_info()
+  File "C:/Users/mxs1113/PycharmProjects/markosim_reloaded/main_gui.py", line 629, in load_module_info
+    wd = os.get_cwd()
+AttributeError: module 'os' has no attribute 'get_cwd'
+

@@ -21,13 +21,14 @@ def calculate_3_level(simulation_instance):  # todo clean up and comment
         outside_module = Module_class.Module(outside_module_file)
         diode_module = Module_class.Module(diode_module_file)
 
+        inside_module.set__vcc_ratio_and_get_values(system)
+        outside_module.set__vcc_ratio_and_get_values(system)
+        diode_module.set__vcc_ratio_and_get_values(system)
+
         inside_module.set__rg(simulation_instance, system, "inside")
         outside_module.set__rg(simulation_instance, system, "outside")
         diode_module.set__rg(simulation_instance, system, "diode")
 
-        inside_module.set__vcc_ratio_and_get_values(system)
-        outside_module.set__vcc_ratio_and_get_values(system)
-        diode_module.set__vcc_ratio_and_get_values(system)
 
         outside_module_fwd_current = [abs(current) if current < 0.0 < voltage else 0.0 for current, voltage in zip(system.get__system_output_current(), system.get__system_output_voltage())]
         outside_module_igbt_current = [abs(current) if current > 0.0 and voltage > 0.0 else 0.0 for current, voltage in zip(system.get__system_output_current(), system.get__system_output_voltage())]

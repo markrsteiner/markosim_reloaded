@@ -542,11 +542,6 @@ class Ui_MainWindow(object):
 
         atexit.register(self.save__module_file)
 
-        # self.templateInputFileButton_TwoLevel.clicked.connect(self.click__templateInputFileButton_TwoLevel)
-        # self.templateModuleFileButton_TwoLevel.clicked.connect(self.click__templateModuleFileButton)
-        # self.templateInputFileButton_ThreeLevel.clicked.connect(self.click__templateInputFileButton_ThreeLevel)
-        # self.templateModuleFileButton_ThreeLevel.clicked.connect(self.click__templateModuleFileButton)
-        #
 
     def set__module_select_tree(self):
         self.moduleSelectTreeWidget.clear()
@@ -628,8 +623,24 @@ class Ui_MainWindow(object):
             count = 0
 
     def load_module_info(self):
-        with open('module_info.json', encoding='utf8') as f:
-            self.master_module_file_dict = json.loads(f.read())
+        try:
+            wd = sys._MEIPASS
+        except AttributeError:
+            wd = os.getcwd()
+        mod_file = "module_info.json"
+        file_path = os.path.join(wd, mod_file)
+        try:
+            with open(file_path, encoding='utf8') as f:
+                self.master_module_file_dict = json.loads(f.read())
+        except FileNotFoundError:
+            try:
+                with open(file_path, encoding='utf8') as f:
+                    self.master_module_file_dict = json.loads(f.read())
+            except FileNotFoundError:
+                self.popup__death_box("Module Info JSON file not found. Self-destruct sequence initiated.")
+                sys.exit()
+
+
 
     def open__simulation_file(self):
         self.windowStatusBar.showMessage("Open an input file.")
@@ -694,7 +705,11 @@ class Ui_MainWindow(object):
             simulation_instance.load__module_filename_list(inside_module_list, outside_module_list, diode_module_list)
 
         if simulation_instance is not None:
-            simulation_instance.load_user_inputs(self.userInput__SimulationInputFileLocation.text())
+            if self.mainTabWidget.currentIndex() == 1:
+                simulation_instance.load_user_inputs__two_level(self.userInput__SimulationInputFileLocation.text())
+            if self.mainTabWidget.currentIndex() == 2:
+                simulation_instance.load_user_inputs__three_level(self.userInput__SimulationInputFileLocation.text())
+
             simulation_instance.set_output_file_location(user_input__output_file_location)
             simulation_instance.run__straight_simulation(self.simulationProgressBar)
             simulation_instance.save__output_file()
@@ -705,18 +720,26 @@ class Ui_MainWindow(object):
 
     def popup__error_box(self, input_string):
         msg = QtWidgets.QMessageBox()
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
         msg.setText(input_string)
         msg.setWindowTitle("Error")
-        msg.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec_()
 
     def popup__warning_box(self, input_string):
         msg = QtWidgets.QMessageBox()
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setIcon(QtWidgets.QMessageBox.Warning)
         msg.setText(input_string)
         msg.setWindowTitle("Warning")
         msg.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+        msg.exec_()
+
+    def popup__death_box(self, input_string):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setText(input_string)
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec_()
 
     def check__problem_with_inputs(self):
@@ -783,7 +806,13 @@ class Ui_MainWindow(object):
             sim_tools.make__six_step_template(output_file_location)
 
     def save__module_file(self):
-        with open('module_info.json', 'w') as f:
+        try:
+            wd = sys._MEIPASS
+        except AttributeError:
+            wd = os.getcwd()
+        mod_file = "module_info.json"
+        file_path = os.path.join(wd, mod_file)
+        with open(file_path, 'w') as f:
             json.dump(self.master_module_file_dict, f)
 
     # !!! DON'T DELETE YET, NOT IMPLEMENTED

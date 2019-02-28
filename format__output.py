@@ -2,7 +2,7 @@ def build__output_view_dict(system, inside_module, outside_module=None, diode_mo
     is_three_level = outside_module is not None and diode_module is not None
     if is_three_level:
         return {
-            'Vcc [V]': system.get__input_bus_voltage(),
+            'Vcc [V]': system.get__input_bus_voltage()*2, #multiply by 2 because it's divided by 2
             'Io [Apk]': system.get__input_current(),
             'PF [cos(\u03D5)]': system.get__input_power_factor(),
             'Mod. Depth': system.get__input_mod_depth(),
@@ -67,9 +67,9 @@ def build__output_view_dict(system, inside_module, outside_module=None, diode_mo
             'T\u2C7C Max FWD Inside [\u00B0C]': inside_module.get__nom_tj_max_fwd(),
             'T\u2C7C Max FWD Diode [\u00B0C]': diode_module.get__nom_tj_max_fwd(),
 
-            'Outside Module Name': outside_module.name,
-            'Inside Module Name': inside_module.name,
-            'Diode Module Name': diode_module.name
+            'Outside Module Name': outside_module.module['name'],
+            'Inside Module Name': inside_module.module['name'],
+            'Diode Module Name': diode_module.module['name']
         }
     else:
         return {
@@ -105,7 +105,6 @@ def build__output_view_dict(system, inside_module, outside_module=None, diode_mo
 def build__output_file_header(three_level_flag):
     if three_level_flag:
         return [
-            'Module Name',
             'Modulation',
             'Vcc [V]',
             'Io [Apk]',
@@ -113,11 +112,11 @@ def build__output_file_header(three_level_flag):
             'Mod. Depth',
             'fc [kHz]',
             'fo [Hz]',
-            'rg on [\u03A9]',
-            'rg off [\u03A9]',
             'Ts [\u00B0C]',
 
             'Outside Module Name',
+            'Outside rg on [\u03A9]',
+            'Outside rg off [\u03A9]',
 
             'P Cond. IGBT Outside [W]',
             'Psw IGBT Outside [W]',
@@ -130,6 +129,8 @@ def build__output_file_header(three_level_flag):
             'P Total FWD Outside [W]',
 
             'Inside Module Name',
+            'Inside rg on [\u03A9]',
+            'Inside rg off [\u03A9]',
 
             'P Cond. IGBT Inside [W]',
             'Psw IGBT Inside [W]',

@@ -66,8 +66,12 @@ class InputOperation:
     def get__input_rg_flag(self):
         return self.rg_suppress_flag
 
-    def load_user_inputs(self, user_inputs_filename):
-        self.user_inputs = self.input_file_reader(user_inputs_filename)
+    def load_user_inputs__two_level(self, user_inputs_filename):
+        self.user_inputs = self.input_file_reader__two_level(user_inputs_filename)
+        self.user_input_length = len(self.user_inputs['Vcc [V]'])
+
+    def load_user_inputs__three_level(self, user_inputs_filename):
+        self.user_inputs = self.input_file_reader__three_level(user_inputs_filename)
         self.user_input_length = len(self.user_inputs['Vcc [V]'])
 
     def load__module_filename_list(self, input__inner_module_filename_list, input__outer_module_filename_list=None, input__diode_module_filename_list=None):
@@ -213,7 +217,7 @@ class InputOperation:
                     for result in self.gen_dict_extract(key, v):
                         yield result
 
-    def input_file_reader(self, input_file):
+    def input_file_reader__two_level(self, input_file):
         row_list = ['Vcc [V]',
                     'Io [Apk]',
                     'PF [cos(\u03D5)]',
@@ -222,6 +226,27 @@ class InputOperation:
                     'fo [Hz]',
                     'rg on [\u03A9]',
                     'rg off [\u03A9]',
+                    'Ts [\u00B0C]'
+                    ]
+        value_dict = {}
+        for x in range(len(row_list)):
+            value_dict[row_list[x]] = self.pull_data_from_column(input_file, row_list[x], None)
+        for x in range(len(row_list)):
+            if len(value_dict[row_list[x]]) == 1:
+                value_dict[row_list[x]] = value_dict[row_list[x]][0]
+        return value_dict
+
+    def input_file_reader__three_level(self, input_file):
+        row_list = ['Vcc [V]',
+                    'Io [Apk]',
+                    'PF [cos(\u03D5)]',
+                    'Mod. Depth',
+                    'fc [kHz]',
+                    'fo [Hz]',
+                    'Inside rg on [\u03A9]',
+                    'Inside rg off [\u03A9]',
+                    'Outside rg on [\u03A9]',
+                    'Outside rg off [\u03A9]',
                     'Ts [\u00B0C]'
                     ]
         value_dict = {}
